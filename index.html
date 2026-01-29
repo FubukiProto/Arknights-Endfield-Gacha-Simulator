@@ -3,571 +3,775 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>终末地基质计算器</title>
-    <!-- Tailwind CSS v3 -->
+    <title>寻访模拟器</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
-    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
-    <!-- 统一的 Tailwind 配置 -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#3b82f6',
-                        secondary: '#64748b',
-                        success: '#10b981',
-                        warning: '#f59e0b',
-                        danger: '#ef4444',
-                        light: '#f3f4f6',
-                        dark: '#1f2937'
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        'star-6': '#FF0000',    // 6星改为红色
+                        'star-5': '#FFD700',    // 5星改为金色
+                        'star-4': '#800080',    // 4星改为紫色
                     }
                 }
             }
         }
     </script>
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .content-auto {
-                content-visibility: auto;
-            }
-            .transition-all {
-                transition-property: all;
-                transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-                transition-duration: 150ms;
-            }
-            .shadow-hover {
-                @apply transition-all;
-            }
-            .shadow-hover:hover {
-                @apply shadow-lg transform -translate-y-1;
-            }
-        }
-    </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <header class="mb-8 text-center">
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">基质计算器</h1>
-            <p class="text-gray-600">选择目标武器，获取最优的淤积点和词条选择</p>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-4">
+        <header class="text-center mb-4">
+            <h1 class="text-2xl font-bold text-gray-800">寻访模拟器</h1>
+            <div id="guaranteeInfo" class="text-center mb-2">
+                <p class="text-sm text-gray-500">
+                    <span id="sixStarGuarantee">80次寻访内必定获得6星干员</span>
+                </p>
+                <p class="text-sm text-gray-500">
+                    <span id="upGuarantee">120次寻访内必定获得莱万汀</span>
+                </p>
+            </div>
         </header>
 
-        <div class="flex flex-col lg:flex-row gap-6">
-            <!-- 左侧面板：武器选择 -->
-            <div class="w-full lg:w-1/3 bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold mb-4 flex items-center">
-                    <i class="fa fa-shield mr-2 text-primary"></i>武器选择
-                </h2>
-                <div class="mb-4">
-                    <div class="flex gap-2">
-                        <select id="rarity-filter" class="w-1/2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
-                            <option value="all">全部稀有度</option>
-                            <option value="6">6星</option>
-                            <option value="5">5星</option>
-                        </select>
-                        <select id="type-filter" class="w-1/2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
-                            <option value="all">全部类型</option>
-                            <option value="单手剑">单手剑</option>
-                            <option value="双手剑">双手剑</option>
-                            <option value="长柄武器">长柄武器</option>
-                            <option value="手铳">手铳</option>
-                            <option value="施术单元">施术单元</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="mb-4 flex gap-2">
-                    <button id="select-all-btn" class="w-1/2 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-2 rounded-md text-sm transition-all">
-                        <i class="fa fa-check-square-o mr-1"></i>全选
-                    </button>
-                    <button id="clear-selection-btn" class="w-1/2 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-1 px-2 rounded-md text-sm transition-all">
-                        <i class="fa fa-times mr-1"></i>清空选择
+        <div class="w-full max-w-2xl mx-auto bg-white rounded-lg shadow-md p-4 mb-4">
+            <div class="mb-4">
+                <label for="firstGuaranteeDraws" class="block text-sm font-medium text-gray-700 mb-1">首个小保底所需抽数 (1-80)</label>
+                <div class="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                    <input type="number" id="firstGuaranteeDraws" min="1" max="80" value="80" 
+                           class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <button id="applyGuaranteeBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg text-sm whitespace-nowrap">
+                        应用设置
                     </button>
                 </div>
-                <div class="space-y-3 mb-6 max-h-96 overflow-y-auto p-2 border border-gray-200 rounded-md" id="weapon-selection">
-                    <!-- 武器选择项将通过JavaScript动态生成 -->
-                </div>
-
-                <button id="calculate-btn" class="w-full bg-primary hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-all flex items-center justify-center">
-                    <i class="fa fa-calculator mr-2"></i>计算最优选择
-                </button>
             </div>
+        </div>
 
-            <!-- 右侧面板：结果展示 -->
-            <div class="w-full lg:w-2/3 bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold mb-4 flex items-center">
-                    <i class="fa fa-star mr-2 text-primary"></i>最优词条选择
-                </h2>
-                
-                <div id="results-container" class="hidden">
-                    <div class="mb-6">
-                        <h3 class="text-lg font-medium mb-2">推荐策略</h3>
-                        <div class="grid grid-cols-1 gap-4" id="recommendations-container">
-                            <!-- 推荐策略卡片将通过JavaScript动态生成 -->
-                        </div>
-                    </div>
+        <div class="flex justify-center gap-4 mb-4">
+            <button id="singleDrawBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 sm:px-6 rounded-lg text-sm sm:text-base whitespace-nowrap">
+                寻访一次
+            </button>
+            <button id="tenDrawBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 sm:px-6 rounded-lg text-sm sm:text-base whitespace-nowrap">
+                寻访十次
+            </button>
+            <button id="clearBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">
+                清除记录
+            </button>
+        </div>
 
+        <div class="w-full max-w-2xl mx-auto bg-white rounded-lg shadow-md p-4 mb-4">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-lg font-semibold text-gray-800">寻访记录</h2>
+                <span id="totalCostDisplay" class="text-sm text-gray-600">总花费抽数: 0</span>
+            </div>
+            <div id="resultContainer" class="min-h-[300px] max-h-[400px] overflow-y-auto p-2 border border-gray-200 rounded-lg">
+                <p class="text-gray-500 text-center">点击上方按钮开始寻访</p>
+            </div>
+        </div>
 
-
-
-                </div>
-
-                <div id="empty-results" class="text-center py-12">
-                    <i class="fa fa-info-circle text-4xl text-gray-400 mb-4"></i>
-                    <p class="text-gray-500">请选择武器，然后点击“计算最优选择”</p>
-                </div>
+        <div class="w-full max-w-2xl mx-auto bg-white rounded-lg shadow-md p-4">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-lg font-semibold text-gray-800">6星记录</h2>
+            </div>
+            <div id="sixStarContainer" class="min-h-[200px] max-h-[300px] overflow-y-auto p-2 border border-gray-200 rounded-lg">
+                <p class="text-gray-500 text-center">暂无6星干员</p>
             </div>
         </div>
     </div>
 
     <script>
-        // 武器数据
-        const weapons = [
-            { id: 1, name: "宏愿", rarity: 6, type: "单手剑", baseAttribute: "敏捷提升", additionalAttribute: "攻击提升", skillAttribute: "附术" },
-            { id: 2, name: "不知归", rarity: 6, type: "单手剑", baseAttribute: "意志提升", additionalAttribute: "攻击提升", skillAttribute: "流转" },
-            { id: 3, name: "熔铸火焰", rarity: 6, type: "单手剑", baseAttribute: "智识提升", additionalAttribute: "攻击提升", skillAttribute: "夜幕" },
-            { id: 4, name: "黯色火炬", rarity: 6, type: "单手剑", baseAttribute: "智识提升", additionalAttribute: "灼热伤害提升", skillAttribute: "附术" },
-            { id: 5, name: "扶摇", rarity: 6, type: "单手剑", baseAttribute: "主能力提升", additionalAttribute: "暴击率提升", skillAttribute: "夜幕" },
-            { id: 6, name: "热熔切割器", rarity: 6, type: "单手剑", baseAttribute: "意志提升", additionalAttribute: "攻击提升", skillAttribute: "流转" },
-            { id: 7, name: "显赫声名", rarity: 6, type: "单手剑", baseAttribute: "主能力提升", additionalAttribute: "物理伤害提升", skillAttribute: "残暴" },
-            { id: 8, name: "白夜新星", rarity: 6, type: "单手剑", baseAttribute: "主能力提升", additionalAttribute: "源石技艺强度提升", skillAttribute: "附术" },
-            { id: 9, name: "大雷斑", rarity: 6, type: "双手剑", baseAttribute: "力量提升", additionalAttribute: "生命提升", skillAttribute: "医疗" },
-            { id: 10, name: "赫拉芬格", rarity: 6, type: "双手剑", baseAttribute: "力量提升", additionalAttribute: "攻击提升", skillAttribute: "迸发" },
-            { id: 11, name: "典范", rarity: 6, type: "双手剑", baseAttribute: "主能力提升", additionalAttribute: "攻击提升", skillAttribute: "压制" },
-            { id: 12, name: "昔日精品", rarity: 6, type: "双手剑", baseAttribute: "意志提升", additionalAttribute: "生命提升", skillAttribute: "效益" },
-            { id: 13, name: "破碎君王", rarity: 6, type: "双手剑", baseAttribute: "力量提升", additionalAttribute: "暴击率提升", skillAttribute: "粉碎" },
-            { id: 14, name: "负山", rarity: 6, type: "长柄武器", baseAttribute: "敏捷提升", additionalAttribute: "物理伤害提升", skillAttribute: "效益" },
-            { id: 15, name: "骁勇", rarity: 6, type: "长柄武器", baseAttribute: "敏捷提升", additionalAttribute: "物理伤害提升", skillAttribute: "巧技" },
-            { id: 16, name: "J.E.T.", rarity: 6, type: "长柄武器", baseAttribute: "主能力提升", additionalAttribute: "攻击提升", skillAttribute: "压制" },
-            { id: 17, name: "艺术暴君", rarity: 6, type: "手铳", baseAttribute: "智识提升", additionalAttribute: "暴击率提升", skillAttribute: "切骨" },
-            { id: 18, name: "领航者", rarity: 6, type: "手铳", baseAttribute: "智识提升", additionalAttribute: "寒冷伤害提升", skillAttribute: "附术" },
-            { id: 19, name: "楔子", rarity: 6, type: "手铳", baseAttribute: "主能力提升", additionalAttribute: "暴击率提升", skillAttribute: "附术" },
-            { id: 20, name: "同类相食", rarity: 6, type: "手铳", baseAttribute: "主能力提升", additionalAttribute: "法术提升", skillAttribute: "附术" },
-            { id: 21, name: "使命必达", rarity: 6, type: "施术单元", baseAttribute: "意志提升", additionalAttribute: "终结技充能效率提升", skillAttribute: "追袭" },
-            { id: 22, name: "沧溟星梦", rarity: 6, type: "施术单元", baseAttribute: "智识提升", additionalAttribute: "治疗效率提升", skillAttribute: "附术" },
-            { id: 23, name: "作品：蚀迹", rarity: 6, type: "施术单元", baseAttribute: "意志提升", additionalAttribute: "自然伤害提升", skillAttribute: "压制" },
-            { id: 24, name: "爆破单元", rarity: 6, type: "施术单元", baseAttribute: "主能力提升", additionalAttribute: "源石技艺强度提升", skillAttribute: "迸发" },
-            { id: 25, name: "遗忘", rarity: 6, type: "施术单元", baseAttribute: "智识提升", additionalAttribute: "法术提升", skillAttribute: "夜幕" },
-            { id: 26, name: "骑士精神", rarity: 6, type: "施术单元", baseAttribute: "意志提升", additionalAttribute: "生命提升", skillAttribute: "医疗" },
-            // 5星武器
-            { id: 27, name: "钢铁余音", rarity: 5, type: "单手剑", baseAttribute: "敏捷提升", additionalAttribute: "物理伤害提升", skillAttribute: "巧技" },
-            { id: 28, name: "坚城铸造者", rarity: 5, type: "单手剑", baseAttribute: "智识提升", additionalAttribute: "终结技充能效率提升", skillAttribute: "昂扬" },
-            { id: 29, name: "逐鳞3.0", rarity: 5, type: "单手剑", baseAttribute: "力量提升", additionalAttribute: "寒冷伤害提升", skillAttribute: "压制" },
-            { id: 30, name: "十二问", rarity: 5, type: "单手剑", baseAttribute: "敏捷提升", additionalAttribute: "攻击提升", skillAttribute: "附术" },
-            { id: 31, name: "O.B.J.轻芒", rarity: 5, type: "单手剑", baseAttribute: "敏捷提升", additionalAttribute: "攻击提升", skillAttribute: "流转" },
-            { id: 32, name: "仰止", rarity: 5, type: "单手剑", baseAttribute: "敏捷提升", additionalAttribute: "物理伤害提升", skillAttribute: "夜幕" },
-            { id: 33, name: "探骊", rarity: 5, type: "双手剑", baseAttribute: "力量提升", additionalAttribute: "终结技充能效率提升", skillAttribute: "迸发" },
-            { id: 34, name: "古渠", rarity: 5, type: "双手剑", baseAttribute: "力量提升", additionalAttribute: "源石技艺强度提升", skillAttribute: "残暴" },
-            { id: 35, name: "终点之声", rarity: 5, type: "双手剑", baseAttribute: "力量提升", additionalAttribute: "生命提升", skillAttribute: "医疗" },
-            { id: 36, name: "O.B.J.重荷", rarity: 5, type: "双手剑", baseAttribute: "力量提升", additionalAttribute: "生命提升", skillAttribute: "效益" },
-            { id: 37, name: "嵌合正义", rarity: 5, type: "长柄武器", baseAttribute: "力量提升", additionalAttribute: "终结技充能效率提升", skillAttribute: "残暴" },
-            { id: 38, name: "O.B.J.尖峰", rarity: 5, type: "长柄武器", baseAttribute: "意志提升", additionalAttribute: "物理伤害提升", skillAttribute: "附术" },
-            { id: 39, name: "向心之引", rarity: 5, type: "长柄武器", baseAttribute: "意志提升", additionalAttribute: "电磁伤害提升", skillAttribute: "压制" },
-            { id: 40, name: "作品：众生", rarity: 5, type: "手铳", baseAttribute: "敏捷提升", additionalAttribute: "法术提升", skillAttribute: "附术" },
-            { id: 41, name: "O.B.J.迅极", rarity: 5, type: "手铳", baseAttribute: "敏捷提升", additionalAttribute: "终结技充能效率提升", skillAttribute: "迸发" },
-            { id: 42, name: "理性告别", rarity: 5, type: "手铳", baseAttribute: "力量提升", additionalAttribute: "灼热伤害提升", skillAttribute: "追袭" },
-            { id: 43, name: "悼亡诗", rarity: 5, type: "施术单元", baseAttribute: "智识提升", additionalAttribute: "攻击提升", skillAttribute: "夜幕" },
-            { id: 44, name: "莫奈何", rarity: 5, type: "施术单元", baseAttribute: "意志提升", additionalAttribute: "终结技充能效率提升", skillAttribute: "昂扬" },
-            { id: 45, name: "迷失荒野", rarity: 5, type: "施术单元", baseAttribute: "智识提升", additionalAttribute: "电磁伤害提升", skillAttribute: "附术" },
-            { id: 46, name: "布道自由", rarity: 5, type: "施术单元", baseAttribute: "意志提升", additionalAttribute: "治疗效率提升", skillAttribute: "医疗" },
-            { id: 47, name: "O.B.J.术识", rarity: 5, type: "施术单元", baseAttribute: "智识提升", additionalAttribute: "源石技艺强度提升", skillAttribute: "追袭" }
-        ];
+        // DOM 元素
+        const singleDrawBtn = document.getElementById('singleDrawBtn');
+        const tenDrawBtn = document.getElementById('tenDrawBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const resultContainer = document.getElementById('resultContainer');
+        const sixStarContainer = document.getElementById('sixStarContainer');
+        const sixStarGuaranteeEl = document.getElementById('sixStarGuarantee');
+        const upGuaranteeEl = document.getElementById('upGuarantee');
 
-        // 淤积点数据
-        const nodes = [
-            {
-                id: 1,
-                name: "枢纽区",
-                availableBaseAttributes: ["敏捷提升", "力量提升", "意志提升", "智识提升", "主能力提升"],
-                availableAdditionalAttributes: ["攻击提升", "灼热伤害提升", "电磁伤害提升", "寒冷伤害提升", "自然伤害提升", "暴击率提升", "终结技效率提升", "法术伤害提升"],
-                availableSkillAttributes: ["强攻", "压制", "追袭", "粉碎", "巧技", "迸发", "流转", "效益"]
-            },
-            {
-                id: 2,
-                name: "源石研究园",
-                availableBaseAttributes: ["敏捷提升", "力量提升", "意志提升", "智识提升", "主能力提升"],
-                availableAdditionalAttributes: ["攻击提升", "物理伤害提升", "电磁伤害提升", "寒冷伤害提升", "自然伤害提升", "暴击率提升", "终结技效率提升", "法术伤害提升"],
-                availableSkillAttributes: ["压制", "追袭", "昂扬", "巧技", "附术", "医疗", "切骨", "效益"]
-            },
-            {
-                id: 3,
-                name: "矿脉源区",
-                availableBaseAttributes: ["敏捷提升", "力量提升", "意志提升", "智识提升", "主能力提升"],
-                availableAdditionalAttributes: ["生命提升", "物理伤害提升", "灼热伤害提升", "寒冷伤害提升", "自然伤害提升", "暴击率提升", "源石技艺提升", "治疗效率提升"],
-                availableSkillAttributes: ["强攻", "压制", "巧技", "残暴", "附术", "迸发", "夜幕", "效益"]
-            },
-            {
-                id: 4,
-                name: "供能高地",
-                availableBaseAttributes: ["敏捷提升", "力量提升", "意志提升", "智识提升", "主能力提升"],
-                availableAdditionalAttributes: ["攻击提升", "生命提升", "物理伤害提升", "灼热伤害提升", "自然伤害提升", "暴击率提升", "源石技艺提升", "治疗效率提升"],
-                availableSkillAttributes: ["追袭", "粉碎", "昂扬", "残暴", "附术", "医疗", "切骨", "流转"]
-            },
-            {
-                id: 5,
-                name: "武陵城",
-                availableBaseAttributes: ["敏捷提升", "力量提升", "意志提升", "智识提升", "主能力提升"],
-                availableAdditionalAttributes: ["攻击提升", "生命提升", "电磁伤害提升", "寒冷伤害提升", "暴击率提升", "终结技效率提升", "法术伤害提升", "治疗效率提升"],
-                availableSkillAttributes: ["强攻", "粉碎", "残暴", "医疗", "切骨", "迸发", "夜幕", "流转"]
+        // 全局变量
+        let totalDraws = 0;
+        let paidDraws = 0;
+        let sixStarRecords = [];
+        let drawsSinceLastHighStar = 0;
+        let drawsSinceLastSixStar = 0;
+        let drawsSinceLastUpSixStar = 0;
+        let upGuaranteeUsed = false;
+        let freeTenDrawUsed = false;
+        let freeDrawsSinceLastHighStar = 0;
+        let firstSixStarGuaranteeApplied = false; // 是否已经应用了首个小保底
+
+        // 绑定事件
+        singleDrawBtn.addEventListener('click', handleSingleDraw);
+        tenDrawBtn.addEventListener('click', handleTenDraw);
+        clearBtn.addEventListener('click', clearRecords);
+        
+        // 首个小保底设置事件
+        const firstGuaranteeInput = document.getElementById('firstGuaranteeDraws');
+        const applyGuaranteeBtn = document.getElementById('applyGuaranteeBtn');
+        
+        function applyGuaranteeSetting() {
+            // 确保值在有效范围内
+            let value = parseInt(firstGuaranteeInput.value);
+            if (isNaN(value) || value < 1) {
+                value = 1;
+            } else if (value > 80) {
+                value = 80;
             }
-        ];
-
-        // 当前选中的武器ID列表
-        let selectedWeaponIds = [];
-        // 计算结果
-        let calculationResults = [];
-
-        // 初始化页面
-        document.addEventListener('DOMContentLoaded', function() {
-            // 渲染武器选择列表
-            renderWeaponSelection();
-            // 绑定计算按钮事件
-            document.getElementById('calculate-btn').addEventListener('click', calculateOptimalCombinations);
-        });
-
-        // 渲染武器选择列表
-        function renderWeaponSelection() {
-            const container = document.getElementById('weapon-selection');
-            container.innerHTML = '';
+            firstGuaranteeInput.value = value;
             
-            // 获取筛选条件
-            const rarityFilter = document.getElementById('rarity-filter').value;
-            const typeFilter = document.getElementById('type-filter').value;
+            // 重置首个小保底状态，让新设置生效
+            if (!firstSixStarGuaranteeApplied) {
+                // 只有在首个小保底尚未应用时才重置计数
+                drawsSinceLastSixStar = 0;
+            }
             
-            // 筛选武器
-            const filteredWeapons = weapons.filter(weapon => {
-                const rarityMatch = rarityFilter === 'all' || weapon.rarity.toString() === rarityFilter;
-                const typeMatch = typeFilter === 'all' || weapon.type === typeFilter;
-                return rarityMatch && typeMatch;
-            });
-
-            filteredWeapons.forEach(weapon => {
-                const weaponCard = document.createElement('div');
-                weaponCard.className = 'flex items-center p-3 border rounded-md shadow-hover';
-                
-                // 检查武器是否已选中
-                const isChecked = selectedWeaponIds.includes(weapon.id) ? 'checked' : '';
-                
-                weaponCard.innerHTML = `
-                    <input type="checkbox" id="weapon-${weapon.id}" class="weapon-checkbox mr-3 h-5 w-5 text-primary focus:ring-primary" value="${weapon.id}" ${isChecked}>
-                    <label for="weapon-${weapon.id}" class="flex-1 cursor-pointer">
-                        <div class="font-medium flex items-center">
-                            ${weapon.name}
-                            <span class="ml-2 text-xs px-2 py-0.5 ${weapon.rarity === 6 ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'} rounded-full">${weapon.rarity}星</span>
-                            <span class="ml-2 text-xs px-2 py-0.5 bg-gray-100 text-gray-800 rounded-full">${weapon.type}</span>
-                        </div>
-                        <div class="text-sm text-gray-500">${weapon.baseAttribute} / ${weapon.additionalAttribute} / ${weapon.skillAttribute}</div>
-                    </label>
-                `;
-                container.appendChild(weaponCard);
-
-                // 绑定复选框事件
-                const checkbox = weaponCard.querySelector('.weapon-checkbox');
-                checkbox.addEventListener('change', function() {
-                    if (this.checked) {
-                        selectedWeaponIds.push(parseInt(this.value));
-                    } else {
-                        selectedWeaponIds = selectedWeaponIds.filter(id => id !== parseInt(this.value));
-                    }
-                });
-            });
+            updateGuaranteeDisplay();
+            
+            // 显示应用成功提示
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+            toast.textContent = '设置已应用';
+            document.body.appendChild(toast);
+            
+            // 3秒后移除提示
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
         }
         
-        // 绑定筛选和选择控制事件
-        document.addEventListener('DOMContentLoaded', function() {
-            // 绑定稀有度筛选事件
-            document.getElementById('rarity-filter').addEventListener('change', renderWeaponSelection);
-            
-            // 绑定类型筛选事件
-            document.getElementById('type-filter').addEventListener('change', renderWeaponSelection);
-            
-            // 绑定全选按钮事件
-            document.getElementById('select-all-btn').addEventListener('click', function() {
-                // 获取当前筛选条件下的武器
-                const rarityFilter = document.getElementById('rarity-filter').value;
-                const typeFilter = document.getElementById('type-filter').value;
-                
-                const filteredWeapons = weapons.filter(weapon => {
-                    const rarityMatch = rarityFilter === 'all' || weapon.rarity.toString() === rarityFilter;
-                    const typeMatch = typeFilter === 'all' || weapon.type === typeFilter;
-                    return rarityMatch && typeMatch;
-                });
-                
-                // 清空当前选择
-                selectedWeaponIds = [];
-                
-                // 添加筛选后的所有武器
-                filteredWeapons.forEach(weapon => {
-                    selectedWeaponIds.push(weapon.id);
-                });
-                
-                // 重新渲染武器选择列表
-                renderWeaponSelection();
-            });
-            
-            // 绑定清空选择按钮事件
-            document.getElementById('clear-selection-btn').addEventListener('click', function() {
-                // 清空当前选择
-                selectedWeaponIds = [];
-                
-                // 重新渲染武器选择列表
-                renderWeaponSelection();
-            });
+        // 应用按钮点击事件
+        applyGuaranteeBtn.addEventListener('click', applyGuaranteeSetting);
+        
+        // 输入框回车事件
+        firstGuaranteeInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                applyGuaranteeSetting();
+            }
         });
 
-
-
-        // 计算最优属性组合
-        function calculateOptimalCombinations() {
-            // 检查是否选择了武器
-            if (selectedWeaponIds.length === 0) {
-                alert('请至少选择一件武器');
-                return;
+        // 处理单寻访
+        function handleSingleDraw() {
+            const needFiveStarGuarantee = drawsSinceLastHighStar >= 9;
+            
+            // 计算6星保底需求，支持自定义首个小保底
+            let needSixStarGuarantee = false;
+            if (!firstSixStarGuaranteeApplied) {
+                // 首个小保底：使用用户自定义的抽数
+                const firstGuaranteeThreshold = parseInt(document.getElementById('firstGuaranteeDraws').value);
+                needSixStarGuarantee = drawsSinceLastSixStar >= firstGuaranteeThreshold - 1;
+            } else {
+                // 后续小保底：80抽
+                needSixStarGuarantee = drawsSinceLastSixStar >= 79;
             }
-
-            // 获取选中的武器
-            const selectedWeapons = weapons.filter(weapon => selectedWeaponIds.includes(weapon.id));
             
-            // 存储所有淤积点的计算结果
-            let allNodeResults = [];
+            const needUpGuarantee = !upGuaranteeUsed && drawsSinceLastUpSixStar >= 119;
             
-            // 遍历所有淤积点，计算每个淤积点的最优组合
-            nodes.forEach(node => {
-                // 生成当前淤积点的所有可能属性组合
-                const allCombinations = generateAllPossibleCombinations(node);
+            // 先检查是否触发潜能保底机制（在付费抽卡次数更新之前检查）
+            const isPotentialGuarantee = paidDraws === 239; // 下一次抽卡就是第240抽
+            
+            const result = drawCharacter(needFiveStarGuarantee, needSixStarGuarantee, needUpGuarantee, false);
+            const results = [result];
+            
+            // 如果触发潜能保底，直接处理（不显示在寻访记录中）
+            if (isPotentialGuarantee) {
+                handlePotentialGuarantee();
+            }
+            
+            addDrawRecord(results);
+            
+            paidDraws++;
+            
+            // 实时更新总花费抽数显示
+            updateTotalDrawsDisplay();
+            
+            if (paidDraws === 30 && !freeTenDrawUsed) {
+                handleFreeTenDraw();
+            }
+            
+            // 更新保底计数
+            if (result.star === 6) {
+                drawsSinceLastHighStar = 0;
+                drawsSinceLastSixStar = 0;
                 
-                // 计算每个组合的得分
-                const nodeResults = [];
-                allCombinations.forEach(combination => {
-                    let score = 0;
-                    const matchedWeapons = [];
-
-                    selectedWeapons.forEach(weapon => {
-                        if (isWeaponMatch(weapon, combination, node)) {
-                            score++;
-                            matchedWeapons.push(weapon);
-                        }
-                    });
-
-                    if (score > 0) {
-                        nodeResults.push({
-                            nodeId: node.id,
-                            nodeName: node.name,
-                            combination,
-                            score,
-                            matchedWeapons
-                        });
-                    }
+                if (characterPool[6].up.includes(result.character)) {
+                    drawsSinceLastUpSixStar = 0;
+                    upGuaranteeUsed = true;
+                } else {
+                    drawsSinceLastUpSixStar++;
+                }
+                
+                // 记录6星角色，并添加潜能信息
+                const characterName = result.character;
+                
+                // 计算该角色的潜能等级（获取次数-1）
+                const existingRecords = sixStarRecords.filter(record => record.character === characterName);
+                const potentialLevel = existingRecords.length;
+                
+                // 查找上一个非潜能保底的6星角色记录
+                const previousNonPotentialRecord = [...sixStarRecords].reverse().find(record => !record.isPotential);
+                const previousSixStarDraw = previousNonPotentialRecord ? previousNonPotentialRecord.paidDraws : 0;
+                const costDraws = paidDraws - previousSixStarDraw;
+                
+                sixStarRecords.push({
+                    character: characterName,
+                    paidDraws: paidDraws,
+                    costDraws: costDraws,
+                    isUp: characterPool[6].up.includes(characterName),
+                    potentialLevel: potentialLevel
                 });
-                
-                // 将当前淤积点的结果添加到总结果中
-                allNodeResults = allNodeResults.concat(nodeResults);
-            });
-
-            // 按得分降序排序并取前10个
-            calculationResults = allNodeResults
-                .sort((a, b) => b.score - a.score)
-                .slice(0, 10);
-
-            // 显示结果
-            displayResults();
+                updateSixStarDisplay();
+            } else if (result.star === 5) {
+                drawsSinceLastHighStar = 0;
+                drawsSinceLastSixStar++;
+                drawsSinceLastUpSixStar++;
+            } else {
+                drawsSinceLastHighStar++;
+                drawsSinceLastSixStar++;
+                drawsSinceLastUpSixStar++;
+            }
+            
+            updateGuaranteeDisplay();
         }
 
-        // 生成所有可能的属性组合
-        function generateAllPossibleCombinations(node) {
-            const combinations = [];
-            const baseAttributes = node.availableBaseAttributes;
-            const additionalAttributes = node.availableAdditionalAttributes;
-            const skillAttributes = node.availableSkillAttributes;
+        // 处理十连寻访
+        function handleTenDraw() {
+            const results = [];
             
-            // 生成所有可能的3个基础属性组合
-            for (let i = 0; i < baseAttributes.length; i++) {
-                for (let j = i + 1; j < baseAttributes.length; j++) {
-                    for (let k = j + 1; k < baseAttributes.length; k++) {
-                        const selectedBases = [baseAttributes[i], baseAttributes[j], baseAttributes[k]];
-                        
-                        // 生成选择附加属性的组合
-                        additionalAttributes.forEach(attr => {
-                            combinations.push({
-                                selectedBaseAttributes: selectedBases,
-                                selectedAttribute: attr,
-                                attributeType: "additional"
-                            });
-                        });
-                        
-                        // 生成选择技能属性的组合
-                        skillAttributes.forEach(attr => {
-                            combinations.push({
-                                selectedBaseAttributes: selectedBases,
-                                selectedAttribute: attr,
-                                attributeType: "skill"
-                            });
-                        });
+            // 检查十连抽中是否包含潜能保底点（240、480、720等）
+            const startDraw = paidDraws + 1;
+            const endDraw = paidDraws + 10;
+            const hasPotentialGuarantee = (startDraw <= 240 && endDraw >= 240) || 
+                                         (startDraw <= 480 && endDraw >= 480) ||
+                                         (startDraw <= 720 && endDraw >= 720) ||
+                                         (startDraw <= 960 && endDraw >= 960) ||
+                                         (startDraw <= 1200 && endDraw >= 1200);
+            
+            for (let i = 0; i < 10; i++) {
+                const needFiveStarGuarantee = drawsSinceLastHighStar >= 9;
+                
+                // 计算6星保底需求，支持自定义首个小保底
+                let needSixStarGuarantee = false;
+                if (!firstSixStarGuaranteeApplied) {
+                    // 首个小保底：使用用户自定义的抽数
+                    const firstGuaranteeThreshold = parseInt(document.getElementById('firstGuaranteeDraws').value);
+                    needSixStarGuarantee = drawsSinceLastSixStar >= firstGuaranteeThreshold - 1;
+                } else {
+                    // 后续小保底：80抽
+                    needSixStarGuarantee = drawsSinceLastSixStar >= 79;
+                }
+                
+                const needUpGuarantee = !upGuaranteeUsed && drawsSinceLastUpSixStar >= 119;
+                
+                const result = drawCharacter(needFiveStarGuarantee, needSixStarGuarantee, needUpGuarantee, false);
+                results.push(result);
+                
+                if (result.star === 6) {
+                    drawsSinceLastHighStar = 0;
+                    drawsSinceLastSixStar = 0;
+                    
+                    // 标记首个小保底已应用
+                    firstSixStarGuaranteeApplied = true;
+                    
+                    // 标记首个小保底已应用
+                    firstSixStarGuaranteeApplied = true;
+                    
+                    if (characterPool[6].up.includes(result.character)) {
+                        drawsSinceLastUpSixStar = 0;
+                        upGuaranteeUsed = true;
+                    } else {
+                        drawsSinceLastUpSixStar++;
                     }
+                    
+                    const currentDraw = paidDraws + i + 1;
+                    // 记录6星角色，并添加潜能信息
+                    const characterName = result.character;
+                    
+                    // 计算该角色的潜能等级（获取次数-1）
+                    const existingRecords = sixStarRecords.filter(record => record.character === characterName);
+                    const potentialLevel = existingRecords.length;
+                    
+                    // 查找上一个非潜能保底的6星角色记录
+                const previousNonPotentialRecord = [...sixStarRecords].reverse().find(record => !record.isPotential);
+                const previousSixStarDraw = previousNonPotentialRecord ? previousNonPotentialRecord.paidDraws : 0;
+                    const costDraws = currentDraw - previousSixStarDraw;
+                    
+                    sixStarRecords.push({
+                        character: characterName,
+                        paidDraws: currentDraw,
+                        costDraws: costDraws,
+                        isUp: characterPool[6].up.includes(characterName),
+                        potentialLevel: potentialLevel
+                    });
+                    updateSixStarDisplay();
+                } else if (result.star === 5) {
+                    drawsSinceLastHighStar = 0;
+                    drawsSinceLastSixStar++;
+                    drawsSinceLastUpSixStar++;
+                } else {
+                    drawsSinceLastHighStar++;
+                    drawsSinceLastSixStar++;
+                    drawsSinceLastUpSixStar++;
                 }
             }
             
-            return combinations;
+            // 如果十连抽中包含潜能保底点，直接处理（不显示在寻访记录中）
+            if (hasPotentialGuarantee) {
+                handlePotentialGuarantee();
+            }
+            
+            addDrawRecord(results);
+            updateGuaranteeDisplay();
+            
+            paidDraws += 10;
+            
+            // 实时更新总花费抽数显示
+            updateTotalDrawsDisplay();
+            
+            if (paidDraws >= 30 && !freeTenDrawUsed) {
+                handleFreeTenDraw();
+            }
+        }
+        
+        // 处理免费10连寻访
+        function handleFreeTenDraw() {
+            const results = [];
+            
+            // 进行十次免费抽卡（不影响保底计数）
+            for (let i = 0; i < 10; i++) {
+                // 免费抽卡不触发6星保底，但仍需触发5星保底（使用独立的保底计数）
+                const needFiveStarGuarantee = freeDrawsSinceLastHighStar >= 9;
+                const result = drawCharacter(needFiveStarGuarantee, false, false, true);
+                results.push(result);
+                
+                // 更新免费抽卡的保底计数
+                if (result.star === 6 || result.star === 5) {
+                    freeDrawsSinceLastHighStar = 0;
+                } else {
+                    freeDrawsSinceLastHighStar++;
+                }
+
+                // 如果是6星角色，记录到6星记录中
+                if (result.star === 6) {
+                    const characterName = result.character;
+                    
+                    // 计算该角色的潜能等级（获取次数-1）
+                    const existingRecords = sixStarRecords.filter(record => record.character === characterName);
+                    const potentialLevel = existingRecords.length;
+                    
+                    // 查找上一个非潜能保底的6星角色记录
+                const previousNonPotentialRecord = [...sixStarRecords].reverse().find(record => !record.isPotential);
+                const previousSixStarDraw = previousNonPotentialRecord ? previousNonPotentialRecord.paidDraws : 0;
+                    
+                    sixStarRecords.push({
+                        character: characterName,
+                        paidDraws: previousSixStarDraw,
+                        costDraws: 0, // 免费抽卡花费为0
+                        isUp: characterPool[6].up.includes(characterName),
+                        isFree: true,
+                        potentialLevel: potentialLevel
+                    });
+                    updateSixStarDisplay();
+                }
+            }
+            
+            // 添加免费抽卡标记
+            const freeBatchContainer = document.createElement('div');
+            freeBatchContainer.className = 'mb-4 p-3 bg-blue-50 rounded-lg shadow-sm border border-blue-200';
+            
+            const freeTitle = document.createElement('div');
+            freeTitle.className = 'text-sm font-medium text-blue-700 mb-2 pb-1 border-b border-blue-200';
+            freeTitle.textContent = '免费10连';
+            freeBatchContainer.appendChild(freeTitle);
+            
+            // 创建抽卡结果网格（响应式）
+            const resultsGrid = document.createElement('div');
+            resultsGrid.className = 'grid grid-cols-3 sm:grid-cols-5 gap-2';
+            
+            // 添加结果
+            results.forEach((result, index) => {
+                totalDraws++;
+                
+                const resultEl = document.createElement('div');
+                resultEl.className = 'p-2 rounded text-center';
+                
+                // 根据星级设置不同的样式
+                let starColor;
+                switch(result.star) {
+                    case 6:
+                        starColor = 'text-star-6';
+                        resultEl.className += ' bg-white border border-gray-200';
+
+                        break;
+                    case 5:
+                        starColor = 'text-star-5';
+                        resultEl.className += ' bg-white border border-gray-200';
+                        break;
+                    case 4:
+                        starColor = 'text-star-4';
+                        resultEl.className += ' bg-white border border-gray-200';
+                        break;
+                }
+                
+                resultEl.innerHTML = `
+                    <div class="text-xs text-gray-500 mb-1">第 ${totalDraws} 抽</div>
+                    <div class="${starColor} font-bold text-xs sm:text-sm">${result.character}</div>
+                `;
+                
+                resultsGrid.appendChild(resultEl);
+            });
+            
+            freeBatchContainer.appendChild(resultsGrid);
+            
+            // 将免费抽卡批次添加到容器顶部
+            resultContainer.insertBefore(freeBatchContainer, resultContainer.firstChild);
+            
+            // 滚动到顶部
+            resultContainer.scrollTop = 0;
+            
+            // 标记免费10连已使用
+            freeTenDrawUsed = true;
+        }
+        
+        // 检查是否触发潜能保底机制（每240抽赠送UP角色）
+        function checkPotentialGuarantee() {
+            return paidDraws === 240 || paidDraws === 480 || paidDraws === 720 || paidDraws === 960 || paidDraws === 1200;
+        }
+        
+        // 处理潜能保底机制（每240抽赠送UP角色）
+        function handlePotentialGuarantee() {
+            // 直接赠送UP角色（莱万汀）
+            const upCharacter = characterPool[6].up[0];
+            
+            // 计算该角色的潜能等级（获取次数-1）
+            const existingRecords = sixStarRecords.filter(record => record.character === upCharacter);
+            const potentialLevel = existingRecords.length;
+            
+            // 记录6星角色（只显示在6星记录中，不在寻访记录中显示）
+            const previousSixStarDraw = sixStarRecords.length > 0 ? sixStarRecords[sixStarRecords.length - 1].paidDraws : 0;
+            sixStarRecords.push({
+                character: upCharacter,
+                paidDraws: paidDraws,
+                costDraws: 0, // 潜能保底花费为0抽
+                isUp: true,
+                isPotential: true,
+                potentialLevel: potentialLevel
+            });
+            
+            updateSixStarDisplay();
         }
 
-        // 属性名称映射，处理不完全匹配的情况
-        const attributeNameMap = {
-            "终结技充能效率提升": "终结技效率提升",
-            "源石技艺强度提升": "源石技艺提升"
+        // 卡池干员数据
+        const characterPool = {
+            6: {
+                up: ["莱万汀"],
+                regular: ["别礼", "余烬", "黎风", "艾尔黛拉", "骏卫", "洁尔佩塔", "伊冯"]
+            },
+            5: ["佩丽卡", "陈千语", "狼卫", "赛希", "艾维文娜", "昼雪", "弧光", "大潘", "阿列什"],
+            4: ["秋栗", "埃特拉", "卡契尔", "萤石", "安塔尔"]
         };
 
-        // 获取标准化的属性名称
-        function getNormalizedAttributeName(attrName) {
-            return attributeNameMap[attrName] || attrName;
-        }
-
-        // 检查属性是否匹配（考虑名称映射）
-        function isAttributeMatch(weaponAttr, nodeAttr) {
-            const normalizedWeaponAttr = getNormalizedAttributeName(weaponAttr);
-            const normalizedNodeAttr = getNormalizedAttributeName(nodeAttr);
-            return normalizedWeaponAttr === normalizedNodeAttr;
-        }
-
-        // 检查武器是否与属性组合匹配
-        function isWeaponMatch(weapon, combination, node) {
-            // 检查武器的基础属性是否在用户选择的3个基础属性中
-            const baseMatch = combination.selectedBaseAttributes.includes(weapon.baseAttribute);
+        // 寻访逻辑 - 权重型
+        function drawCharacter(needFiveStarGuarantee = false, needSixStarGuarantee = false, needUpGuarantee = false, isFreeDraw = false) {
+            // 总权重为10000
+            const totalWeight = 10000;
+            let weights;
             
-            // 检查武器的附加属性和技能属性是否与用户选择的特定属性匹配
-            let attributeMatch = false;
-            if (combination.attributeType === "additional") {
-                attributeMatch = isAttributeMatch(weapon.additionalAttribute, combination.selectedAttribute);
+            if (needUpGuarantee) {
+                // UP大保底机制：必定出UP6星角色（莱万汀）
+                const upIndex = Math.floor(Math.random() * characterPool[6].up.length);
+                const character = characterPool[6].up[upIndex];
+                return { star: 6, character };
+            } else if (needSixStarGuarantee) {
+                // 6星保底机制：必定出6星，但仍需选择具体角色
+                let character;
+                // 6星干员有UP机制：50%概率出UP干员，50%概率出非UP干员
+                if (Math.random() < 0.5) {
+                    // 出UP干员
+                    const upIndex = Math.floor(Math.random() * characterPool[6].up.length);
+                    character = characterPool[6].up[upIndex];
+                } else {
+                    // 出非UP干员
+                    const regularIndex = Math.floor(Math.random() * characterPool[6].regular.length);
+                    character = characterPool[6].regular[regularIndex];
+                }
+                return { star: 6, character };
             } else {
-                attributeMatch = isAttributeMatch(weapon.skillAttribute, combination.selectedAttribute);
+                // 先计算所有星级的权重（包括概率提升）
+                let adjustedDrawsSinceLastSixStar = drawsSinceLastSixStar;
+                
+                // 如果是首个小保底且用户设置了自定义值，计算等效的抽数
+                // 注意：概率提升只应用于付费抽卡，不应用于免费十连
+                if (!firstSixStarGuaranteeApplied && !isFreeDraw) {
+                    const firstGuaranteeThreshold = parseInt(document.getElementById('firstGuaranteeDraws').value);
+                    const padDraws = 80 - firstGuaranteeThreshold; // 计算等效的垫抽数
+                    adjustedDrawsSinceLastSixStar = drawsSinceLastSixStar + padDraws;
+                }
+                
+                if (adjustedDrawsSinceLastSixStar >= 65) {
+                    // 计算6星角色的提升权重
+                    const bonusWeight = 500 * (adjustedDrawsSinceLastSixStar - 64);
+                    const baseSixStarWeight = 80;
+                    const newSixStarWeight = baseSixStarWeight + bonusWeight;
+                    
+                    // 计算剩余权重总和
+                    const remainingWeight = totalWeight - newSixStarWeight;
+                    
+                    // 按原比例分配剩余权重给5星和4星角色
+                    const originalFiveStarWeight = 800;
+                    const originalFourStarWeight = 9120;
+                    const originalRemainingWeight = originalFiveStarWeight + originalFourStarWeight;
+                    
+                    const newFiveStarWeight = Math.round(originalFiveStarWeight * remainingWeight / originalRemainingWeight);
+                    const newFourStarWeight = remainingWeight - newFiveStarWeight;
+                    
+                    weights = {
+                        6: newSixStarWeight,   // 提升后的6星角色权重
+                        5: newFiveStarWeight,  // 按比例调整的5星角色权重
+                        4: newFourStarWeight   // 按比例调整的4星角色权重
+                    };
+                } else {
+                    // 初始权重
+                    weights = {
+                        6: 80,     // 6星角色权重
+                        5: 800,    // 5星角色权重
+                        4: 9120    // 4星角色权重
+                    };
+                }
+                
+                // 生成随机数
+                const rand = Math.random() * totalWeight;
+                
+                // 根据权重确定抽卡结果
+                let cumulativeWeight = 0;
+                let star;
+                
+                // 如果触发5星保底，将4星的权重分配给5星
+                if (needFiveStarGuarantee) {
+                    // 计算新的总权重（将4星权重加到5星上）
+                    const newFiveStarWeight = weights[5] + weights[4];
+                    const newTotalWeight = weights[6] + newFiveStarWeight;
+                    
+                    const rand = Math.random() * newTotalWeight;
+                    
+                    if (rand < weights[6]) {
+                        star = 6;
+                    } else {
+                        star = 5;
+                    }
+                } else {
+                    // 普通抽卡，考虑所有星级
+                    for (const [starLevel, weight] of Object.entries(weights)) {
+                        cumulativeWeight += weight;
+                        if (rand < cumulativeWeight) {
+                            star = parseInt(starLevel);
+                            break;
+                        }
+                    }
+                }
+                
+                // 从对应星级的角色池中随机选择一个角色
+                let character;
+                if (star === 6) {
+                    // 6星干员有UP机制：50%概率出UP干员，50%概率出非UP干员
+                    if (Math.random() < 0.5) {
+                        // 出UP干员
+                        const upIndex = Math.floor(Math.random() * characterPool[6].up.length);
+                        character = characterPool[6].up[upIndex];
+                    } else {
+                        // 出非UP干员
+                        const regularIndex = Math.floor(Math.random() * characterPool[6].regular.length);
+                        character = characterPool[6].regular[regularIndex];
+                    }
+                } else {
+                    // 5星和4星干员正常随机
+                    const pool = characterPool[star];
+                    const randomIndex = Math.floor(Math.random() * pool.length);
+                    character = pool[randomIndex];
+                }
+                
+                return { star, character, isFreeDraw };
+            }
+        }
+
+        // 添加寻访记录
+        function addDrawRecord(results) {
+            // 如果是第一次抽卡，清空初始提示
+            if (totalDraws === 0) {
+                resultContainer.innerHTML = '';
             }
             
-            // 检查剩余属性是否在淤积点的可用属性中
-            let remainingMatch = false;
-            if (combination.attributeType === "additional") {
-                remainingMatch = node.availableSkillAttributes.some(attr => 
-                    isAttributeMatch(weapon.skillAttribute, attr)
-                );
-            } else {
-                remainingMatch = node.availableAdditionalAttributes.some(attr => 
-                    isAttributeMatch(weapon.additionalAttribute, attr)
-                );
-            }
+            // 创建一个新的抽卡批次容器
+            const batchContainer = document.createElement('div');
+            batchContainer.className = 'mb-4 p-3 bg-gray-50 rounded-lg shadow-sm border border-gray-200';
             
-            // 只有当所有条件都满足时，该组合才能刷取该武器
-            return baseMatch && attributeMatch && remainingMatch;
-        }
-
-        // 显示计算结果
-        function displayResults() {
-            // 隐藏空结果提示
-            document.getElementById('empty-results').classList.add('hidden');
-            // 显示结果容器
-            document.getElementById('results-container').classList.remove('hidden');
+            // 移除抽卡类型标题
             
-            // 渲染推荐策略卡片
-            renderRecommendationsCards();
-        }
+            // 创建抽卡结果网格（响应式）
+            const resultsGrid = document.createElement('div');
+            resultsGrid.className = 'grid grid-cols-3 sm:grid-cols-5 gap-2';
+            
+            // 添加结果
+            results.forEach((result, index) => {
+                totalDraws++;
+                
+                const resultEl = document.createElement('div');
+                resultEl.className = 'p-2 rounded text-center';
+                
+                // 根据星级设置不同的样式
+                let starColor;
+                switch(result.star) {
+                    case 6:
+                        starColor = 'text-star-6';
+                        resultEl.className += ' bg-white border border-gray-200';
 
-        // 渲染推荐策略卡片
-        function renderRecommendationsCards() {
-            const container = document.getElementById('recommendations-container');
-            container.innerHTML = '';
-
-            calculationResults.forEach((result, index) => {
-                const card = document.createElement('div');
-                card.className = 'bg-white border rounded-lg shadow-sm hover:shadow-md transition-all p-4';
+                        break;
+                    case 5:
+                        starColor = 'text-star-5';
+                        resultEl.className += ' bg-white border border-gray-200';
+                        break;
+                    case 4:
+                        starColor = 'text-star-4';
+                        resultEl.className += ' bg-white border border-gray-200';
+                        break;
+                }
                 
-                // 格式化特定属性显示
-                const attributeTypeText = result.combination.attributeType === 'additional' ? '附加' : '技能';
-                
-                // 获取覆盖武器的名称列表
-                const weaponNames = result.matchedWeapons.map(w => w.name).join(', ');
-                
-                // 简化基础词条显示
-                const simplifiedBaseAttributes = result.combination.selectedBaseAttributes.map(attr => {
-                    return attr.replace('提升', '');
-                }).join(', ');
-                
-                card.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="font-bold text-lg text-primary">#${index + 1}</div>
-                        <div class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                            ${result.score} 把武器
-                        </div>
-                    </div>
-                    <h4 class="text-md font-semibold mb-2">${result.nodeName}</h4>
-                    <div class="space-y-2 text-sm">
-                        <div>
-                            <span class="font-medium text-gray-700">基础属性:</span>
-                            <span class="text-gray-600">${simplifiedBaseAttributes}</span>
-                        </div>
-                        <div>
-                            <span class="font-medium text-gray-700">${attributeTypeText}属性:</span>
-                            <span class="text-gray-600">${result.combination.selectedAttribute}</span>
-                        </div>
-                    </div>
-                    <div class="mt-3 pt-3 border-t border-gray-100">
-                        <div class="text-xs text-gray-500">
-                            <span class="font-medium">覆盖武器:</span> ${result.matchedWeapons.map(w => `<span class="${w.rarity === 6 ? 'text-red-600' : 'text-yellow-600'}">${w.name}</span>`).join(', ')}
-                        </div>
-                    </div>
+                resultEl.innerHTML = `
+                    <div class="text-xs text-gray-500 mb-1">第 ${totalDraws} 抽</div>
+                    <div class="${starColor} font-bold text-xs sm:text-sm">${result.character}</div>
                 `;
                 
-                container.appendChild(card);
+                resultsGrid.appendChild(resultEl);
+            });
+            
+            batchContainer.appendChild(resultsGrid);
+            
+            // 将新的抽卡批次添加到容器顶部
+            resultContainer.insertBefore(batchContainer, resultContainer.firstChild);
+            
+            // 滚动到顶部
+            resultContainer.scrollTop = 0;
+        }
+
+        // 更新6星记录显示
+        function updateSixStarDisplay() {
+            if (sixStarRecords.length === 0) {
+                sixStarContainer.innerHTML = '<p class="text-gray-500 text-center">暂无6星角色</p>';
+                updateTotalDrawsDisplay();
+                return;
+            }
+
+            // 实时更新总花费抽数显示
+            updateTotalDrawsDisplay();
+
+            sixStarContainer.innerHTML = '';
+
+            // 按付费抽数降序排列（新的记录在上方）
+            const sortedRecords = [...sixStarRecords].sort((a, b) => b.paidDraws - a.paidDraws);
+
+
+
+            sortedRecords.forEach((record, index) => {
+                const recordEl = document.createElement('div');
+                recordEl.className = 'mb-3 p-3 bg-gray-50 rounded-lg shadow-sm border border-gray-200';
+
+                // 固定最大宽度为80抽
+                const maxCostDraws = 80;
+                const barWidth = Math.min((record.costDraws / maxCostDraws) * 100, 100);
+
+                // 生成角色名称显示（包含潜能信息或NEW标识）
+                let characterDisplayName = record.character;
+                let extraInfo = '';
+                
+                if (record.potentialLevel === 0) {
+                    // 首次获取，显示NEW!
+                    extraInfo = '<span class="text-yellow-500 ml-1">NEW!</span>';
+                } else if (record.potentialLevel >= 1 && record.potentialLevel <= 5) {
+                    // 第二次到第六次获取，显示潜能等级
+                    extraInfo = `<span class="text-gray-500 ml-1">（${record.potentialLevel}潜）</span>`;
+                }
+                // 第七次及以后获取，不显示额外信息
+                
+                // 根据是否是潜能保底显示不同的样式
+                if (record.isPotential) {
+                    // 潜能保底也显示潜能等级
+                    let potentialInfo = '';
+                    if (record.potentialLevel === 0) {
+                        potentialInfo = '<span class="text-yellow-500 ml-1">NEW!</span>';
+                    } else if (record.potentialLevel >= 1 && record.potentialLevel <= 5) {
+                        potentialInfo = `<span class="text-gray-500 ml-1">（${record.potentialLevel}潜）</span>`;
+                    }
+                    
+                    recordEl.innerHTML = `
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-star-6">${record.character}${potentialInfo}</span>
+                            <span class="text-sm text-yellow-600 font-medium">潜能保底</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div class="bg-yellow-400 h-2.5 rounded-full" style="width: 100%"></div>
+                        </div>
+                    `;
+                } else {
+                    recordEl.innerHTML = `
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-star-6">${characterDisplayName}${extraInfo}</span>
+                            <span class="text-sm text-gray-600">花费 ${record.costDraws} 抽</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div class="bg-star-6 h-2.5 rounded-full" style="width: ${barWidth}%"></div>
+                        </div>
+                    `;
+                }
+
+                sixStarContainer.appendChild(recordEl);
             });
         }
 
-        // 渲染推荐策略表格（备用）
-        function renderRecommendationsTable() {
-            const tableBody = document.getElementById('recommendations-table');
-            tableBody.innerHTML = '';
-
-            calculationResults.forEach((result, index) => {
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50';
-                
-                // 格式化特定属性显示
-                const attributeTypeText = result.combination.attributeType === 'additional' ? '附加' : '技能';
-                const attributeText = `${result.combination.selectedAttribute} (${attributeTypeText})`;
-                
-                // 获取覆盖武器的名称列表
-                const weaponNames = result.matchedWeapons.map(w => w.name).join(', ');
-                
-                // 简化基础词条显示
-                const simplifiedBaseAttributes = result.combination.selectedBaseAttributes.map(attr => {
-                    return attr.replace('提升', '');
-                }).join(', ');
-                
-                row.innerHTML = `
-                    <td class="py-2 px-4 border-b border-gray-200">${index + 1}</td>
-                    <td class="py-2 px-4 border-b border-gray-200 font-medium">${result.nodeName}</td>
-                    <td class="py-2 px-4 border-b border-gray-200">${simplifiedBaseAttributes}</td>
-                    <td class="py-2 px-4 border-b border-gray-200">${result.combination.selectedAttribute}</td>
-                `;
-                
-                // 添加覆盖武器信息行
-                const weaponRow = document.createElement('tr');
-                weaponRow.className = 'bg-gray-50';
-                weaponRow.innerHTML = `
-                    <td colspan="4" class="py-1 px-4 text-xs text-gray-600">
-                        <i class="fa fa-info-circle mr-1"></i>覆盖武器: ${weaponNames}
-                    </td>
-                `;
-                
-                tableBody.appendChild(row);
-                tableBody.appendChild(weaponRow);
-            });
-
-
+        // 更新总花费抽数显示
+        function updateTotalDrawsDisplay() {
+            document.getElementById('totalCostDisplay').textContent = `总花费抽数: ${paidDraws}`;
         }
 
+        // 更新保底信息显示
+        function updateGuaranteeDisplay() {
+            // 计算6星保底剩余抽数，考虑自定义首个小保底
+            let sixStarRemaining;
+            if (!firstSixStarGuaranteeApplied) {
+                const firstGuaranteeThreshold = parseInt(document.getElementById('firstGuaranteeDraws').value);
+                sixStarRemaining = Math.max(0, firstGuaranteeThreshold - drawsSinceLastSixStar);
+            } else {
+                sixStarRemaining = Math.max(0, 80 - drawsSinceLastSixStar);
+            }
+            
+            const upRemaining = Math.max(0, 120 - drawsSinceLastUpSixStar);
+            
+            sixStarGuaranteeEl.textContent = `${sixStarRemaining}次寻访内必定获得6星干员`;
+            
+            if (!upGuaranteeUsed) {
+                upGuaranteeEl.textContent = `${upRemaining}次寻访内必定获得莱万汀`;
+                upGuaranteeEl.style.display = 'inline';
+            } else {
+                upGuaranteeEl.style.display = 'none';
+            }
+        }
 
-
-
+        // 清除寻访记录
+        function clearRecords() {
+            totalDraws = 0;
+            paidDraws = 0;
+            sixStarRecords = [];
+            drawsSinceLastHighStar = 0;
+            drawsSinceLastSixStar = 0;
+            drawsSinceLastUpSixStar = 0;
+            upGuaranteeUsed = false;
+            freeTenDrawUsed = false;
+            freeDrawsSinceLastHighStar = 0;
+            firstSixStarGuaranteeApplied = false;
+            
+            resultContainer.innerHTML = '<p class="text-gray-500 text-center">点击上方按钮开始寻访</p>';
+            sixStarContainer.innerHTML = '<p class="text-gray-500 text-center">暂无6星干员</p>';
+            updateTotalDrawsDisplay();
+            updateGuaranteeDisplay();
+        }
     </script>
 </body>
 </html>
